@@ -1,0 +1,302 @@
+<html>
+
+<head>
+    <title>FullCalendar POC</title>
+    <link href='./node_modules/fullcalendar/dist/fullcalendar.min.css' rel='stylesheet' />
+    <link href='./node_modules/fullcalendar/dist/fullcalendar.print.min.css' rel='stylesheet' media='print' />
+    <link href="./node_modules/fullcalendar-scheduler/dist/scheduler.min.css" rel="stylesheet" />
+    <!--<link href="./node_modules/jquery-ui-dist/jquery-ui.css" rel="stylesheet" /> -->
+
+    <script src="./node_modules/requirejs/require.js"></script>
+    <!-- <script src='./node_modules/moment/min/moment.min.js'></script>
+    <script src='./node_modules/jquery/dist/jquery.min.js'></script>
+    <script src='./node_modules/fullcalendar/dist/fullcalendar.min.js'></script>
+    <script src='./node_modules/fullcalendar-scheduler/dist/scheduler.min.js'></script>
+    <script src='./node_modules/jquery-ui-dist/jquery-ui.js'></script>    
+    <script src='./node_modules/bootstrap/dist/js/bootstrap.js'></script> -->
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Lucida Grande", Helvetica, Arial, Verdana, sans-serif;
+            font-size: 14px;
+        }
+
+        #calendar {
+            max-width: 900px;
+            margin: 50px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        require.config({
+            paths: {
+                "jquery": "./node_modules/jquery/dist/jquery",
+                "knockout": "./node_modules/knockout/build/output/knockout-latest",
+                "moment": "./node_modules/moment/min/moment.min",
+                "fullcalendar": "./node_modules/fullcalendar/dist/fullcalendar",
+                "scheduler": "./node_modules/fullcalendar-scheduler/dist/scheduler",
+                "jqueryui": "./node_modules/jquery-ui-dist/jquery-ui"
+            }
+        });
+
+        require(['knockout', 'jquery', 'data', 'moment', 'fullcalendar', 'scheduler'],
+            function (ko, $, data) {
+                var viewModel = {
+                    buildings: data.buildings,
+
+                    loadCalendar: function () {
+                        $('#calendar').fullCalendar({
+                            defaultDate: '2018-04-01',
+                            editable: true,
+                            navLinks: false,
+                            eventLimit: true, // allow "more" link when too many events   
+                            weekNumbers: true,
+                            header: {
+                                left: 'today prev,next',
+                                center: 'title',
+                                right: 'timelineMonth'
+                            },
+                            defaultView: 'timelineMonth',
+                            resourceAreaWidth: '25%',
+                            resourceLabelText: 'Rooms',
+                            resourceColumns: [
+                                {
+                                    group: true,
+                                    labelText: 'Building',
+                                    field: 'building'
+                                },
+                                {
+                                    labelText: 'Apartment',
+                                    field: 'title'
+                                }
+                            ],
+                            resources: data.buildingResource(),
+                            events: data.newevents(),
+                            eventMouseover: function (data, event, view) {
+
+                                tooltip = '<div class="tooltiptopicevent" style="width:auto;height:auto;background:#ccc;position:absolute;z-index:10001;padding:10px 10px 10px 10px ;  line-height: 200%;">' + 'title: ' + ': ' + data.title + '</br>' + 'start: ' + ': ' + data.start + '</div>';
+
+                                $("body").append(tooltip);
+                                $(this).mouseover(function (e) {
+                                    $(this).css('z-index', 10000);
+                                    $('.tooltiptopicevent').fadeIn('500');
+                                    $('.tooltiptopicevent').fadeTo('10', 1.9);
+                                }).mousemove(function (e) {
+                                    $('.tooltiptopicevent').css('top', e.pageY + 10);
+                                    $('.tooltiptopicevent').css('left', e.pageX + 20);
+                                });
+
+                            },
+                            eventMouseout: function (data, event, view) {
+                                $(this).css('z-index', 8);
+
+                                $('.tooltiptopicevent').remove();
+
+                            },
+                            eventClick: function (eventObj) {
+                                dialog.dialog("open");
+                            },
+                            dayClick: function (date, jsEvent, view, resourceObj) {
+
+                                alert('Clicked on: ' + date.format() + ' ' + resourceObj.title);
+
+                                //alert('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
+
+                                //alert('Current view: ' + view.name);
+
+                                // change the day's background color just for fun
+                                // $(this).css('background-color', 'red');
+                            },
+                            selectable: true,
+                            select: function (startDate, endDate,jsEvent, view,  resource ) {
+                                $('#calendar').fullCalendar('removeEvents', function () { return true; });
+                                var events =  data.newevents();
+                                events.push
+                                 ({ id: events.length + 1, resourceId: resource.id, start: startDate.format(), end: endDate.format(), title: 'test', buildingid: resource.buildingid,eventColor: 'red'  });
+
+                                // ({ id: '6', resourceId: 'f', start: '2018-04-07T10:30:00', end: '2018-04-07T02:30:00', title: 'testing 6', buildingid: 'B3'});
+                                 data.newevents(events);
+
+                                 $('#calendar').fullCalendar('addEventSource', data.newevents(), true);
+                           
+                                //alert('selected ' + startDate.format() + ' to ' + endDate.format() + ' on '+ resource.title);
+                            },
+                            schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source'
+                        });
+                    },
+                };
+                ko.applyBindings(viewModel);
+
+                $(document).ready(function () {
+                    viewModel.loadCalendar();
+                });
+            });
+
+
+    </script>
+
+    <div>
+        <p>
+            Building List:
+            <select data-bind="options: buildings, optionsText: 'name',optionsCaption: 'Choose...'"></select>
+        </p>
+    </div>
+
+    <div id="calendar"></div>
+
+    <!-- <script>
+        $(document).ready(function () {
+
+            $('#building_selector').on('change', function (selBuilding) {
+                $('#calendar').fullCalendar('rerenderEvents');
+            });
+
+            var dialog, form,
+
+                // From http://www.whatwg.org/specs/web-apps/current-work/multipage/states-of-the-type-attribute.html#e-mail-state-%28type=email%29
+                name = $("#name"),
+                email = $("#email"),
+                password = $("#password"),
+
+                dialog = $('#dialog').dialog({
+                    autoOpen: false,
+                    height: 400,
+                    width: 350,
+                    modal: true,
+                    buttons: {
+                        "Create an account": addUser,
+                        Cancel: function () {
+                            dialog.dialog("close");
+                        }
+                    },
+                    close: function () {
+                        form[0].reset();
+                    }
+
+
+                });
+
+            form = dialog.find("form").on("submit", function (event) {
+                event.preventDefault();
+                addUser();
+            });
+
+            function addUser() {
+                var valid = true;
+
+
+                if (valid) {
+                    $("#users tbody").append("<tr>" +
+                        "<td>" + name.val() + "</td>" +
+                        "<td>" + email.val() + "</td>" +
+                        "<td>" + password.val() + "</td>" +
+                        "</tr>");
+                    dialog.dialog("close");
+                }
+                return valid;
+            }
+
+            var buildings = [{ id: 'a', building: '460 Bryant', title: 'Apartment A' },
+            { id: 'b', building: '460 Bryant', title: 'Apartment B', eventColor: 'green' },
+            { id: 'c', building: '460 Bryant', title: 'Apartment C', eventColor: 'orange' },
+            {
+                id: 'd', building: '460 Bryant', title: 'Apartment D', children: [
+                    { id: 'd1', title: 'Bed D1' },
+                    { id: 'd2', title: 'Bed D2' }
+                ]
+            },
+            { id: 'e', building: '564 Pacific', title: 'Apartment E' },
+            { id: 'f', building: '564 Pacific', title: 'Apartment F', eventColor: 'red' }];
+            var selectedbuildings = buildings;
+
+            //Check this link - column scale duration
+            //https://fullcalendar.io/releases/fullcalendar-scheduler/1.9.4/demos/scale.html
+            $('#calendar').fullCalendar({
+                now: '2018-04-07',
+                editable: true,
+                //eventLimit: true, // allow "more" link when too many events
+                aspectRatio: 1.8,
+                scrollTime: '00:00',
+                weekNumbers: true,
+                header: {
+                    left: 'today prev,next',
+                    center: 'title',
+                    right: 'timelineMonth'
+                },
+
+                eventMouseover: function (data, event, view) {
+
+                    tooltip = '<div class="tooltiptopicevent" style="width:auto;height:auto;background:#ccc;position:absolute;z-index:10001;padding:10px 10px 10px 10px ;  line-height: 200%;">' + 'title: ' + ': ' + data.title + '</br>' + 'start: ' + ': ' + data.start + '</div>';
+
+
+                    $("body").append(tooltip);
+                    $(this).mouseover(function (e) {
+                        $(this).css('z-index', 10000);
+                        $('.tooltiptopicevent').fadeIn('500');
+                        $('.tooltiptopicevent').fadeTo('10', 1.9);
+                    }).mousemove(function (e) {
+                        $('.tooltiptopicevent').css('top', e.pageY + 10);
+                        $('.tooltiptopicevent').css('left', e.pageX + 20);
+                    });
+
+
+                },
+                eventMouseout: function (data, event, view) {
+                    $(this).css('z-index', 8);
+
+                    $('.tooltiptopicevent').remove();
+
+                },
+
+                eventRender: function eventRender(event, element, view) {
+                    if (event.building) {
+                        selectedbuildings = [];
+                    }
+                    var d = buildings.filter(function (item) { return item.building == event.building })
+                    for (let index = 0; index < d.length; index++) {
+                        selectedbuildings.push(d[index]);
+
+                    }
+                    //selectedbuildings.push(d);
+                    return ['all', event.building].indexOf($('#building_selector').val()) >= 0
+                },
+                defaultView: 'timelineMonth',
+                navLinks: false,
+                resourceAreaWidth: '25%',
+                resourceLabelText: '',
+                resourceColumns: [
+                    {
+                        group: true,
+                        labelText: 'Building',
+                        field: 'building'
+                    },
+                    {
+                        labelText: 'Apartment',
+                        field: 'title'
+                    }
+                ],
+                resources: selectedbuildings,
+                events: [
+                    { id: '1', resourceId: 'b', start: '2018-04-07T02:00:00', end: '2018-04-07T07:00:00', title: 'event 1', building: '460 Bryant' },
+                    { id: '2', resourceId: 'c', start: '2018-04-07T05:00:00', end: '2018-04-07T22:00:00', title: 'event 2', building: '460 Bryant' },
+                    { id: '3', resourceId: 'd1', start: '2018-04-06', end: '2018-04-08', title: 'event 3', building: '564 Pacific' },
+                    { id: '4', resourceId: 'e', start: '2018-04-07T03:00:00', end: '2018-04-07T08:00:00', title: 'event 4', building: '564 Pacific' },
+                    { id: '5', resourceId: 'f', start: '2018-04-07T00:30:00', end: '2018-04-07T02:30:00', title: 'event 5', building: '564 Pacific' }
+                ],
+                eventClick: function (eventObj) {
+                    dialog.dialog("open");
+                }
+            });
+
+            $("#create-appointment").button().on("click", function () {
+                dialog.dialog("open");
+            });
+        });
+    </script> -->
+</body>
+
+</html>
