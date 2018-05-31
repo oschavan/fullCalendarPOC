@@ -5,9 +5,14 @@
     <link href='./node_modules/fullcalendar/dist/fullcalendar.min.css' rel='stylesheet' />
     <link href='./node_modules/fullcalendar/dist/fullcalendar.print.min.css' rel='stylesheet' media='print' />
     <link href="./node_modules/fullcalendar-scheduler/dist/scheduler.min.css" rel="stylesheet" />
-    <!--<link href="./node_modules/jquery-ui-dist/jquery-ui.css" rel="stylesheet" /> -->
+    <link href="./node_modules/jquery-ui-dist/jquery-ui.css" rel="stylesheet" />
 
     <script src="./node_modules/requirejs/require.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.css" rel="stylesheet" type="text/css"/> -->
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>  -->
     <!-- <script src='./node_modules/moment/min/moment.min.js'></script>
     <script src='./node_modules/jquery/dist/jquery.min.js'></script>
     <script src='./node_modules/fullcalendar/dist/fullcalendar.min.js'></script>
@@ -31,20 +36,32 @@
 </head>
 
 <body>
+
     <script>
         require.config({
             paths: {
+                "moment": "./node_modules/moment/min/moment.min",
                 "jquery": "./node_modules/jquery/dist/jquery",
                 "knockout": "./node_modules/knockout/build/output/knockout-latest",
-                "moment": "./node_modules/moment/min/moment.min",
                 "fullcalendar": "./node_modules/fullcalendar/dist/fullcalendar",
                 "scheduler": "./node_modules/fullcalendar-scheduler/dist/scheduler",
-                "jqueryui": "./node_modules/jquery-ui-dist/jquery-ui"
+                "jqueryui": "./node_modules/jquery-ui-dist/jquery-ui",
+                // "popper": "./popper",
+                // "bootstrap": "./node_modules/bootstrap/dist/js/bootstrap",
+                // "bootstrap-datepicker": "./node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min"
             }
         });
 
-        require(['knockout', 'jquery', 'data', 'moment', 'fullcalendar', 'scheduler'],
+        require(['knockout', 'jquery', 'data', 'moment', 'fullcalendar', 'scheduler', 'jqueryui'
+            //    'popper', 'bootstrap', 'bootstrap-datepicker'
+        ],
             function (ko, $, data) {
+
+                var appointmentViewModel = {
+                    title: ko.observable("omkar"),
+                    appointmentData: data.appointmentObj
+                };
+
                 var viewModel = {
                     buildings: data.buildings,
 
@@ -75,7 +92,7 @@
                                 }
                             ],
                             resources: data.buildingResource(),
-                            events: data.newevents(),
+                            events: data.newevents,
                             eventMouseover: function (data, event, view) {
 
                                 tooltip = '<div class="tooltiptopicevent" style="width:auto;height:auto;background:#ccc;position:absolute;z-index:10001;padding:10px 10px 10px 10px ;  line-height: 200%;">' + 'title: ' + ': ' + data.title + '</br>' + 'start: ' + ': ' + data.start + '</div>';
@@ -98,205 +115,147 @@
 
                             },
                             eventClick: function (eventObj) {
-                                dialog.dialog("open");
+                                openAppointmentDialog(eventObj.title, eventObj.start.format(), eventObj.end.format(), eventObj);
                             },
                             dayClick: function (date, jsEvent, view, resourceObj) {
-
-                                alert('Clicked on: ' + date.format() + ' ' + resourceObj.title);
-
-                                //alert('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
-
-                                //alert('Current view: ' + view.name);
-
-                                // change the day's background color just for fun
-                                // $(this).css('background-color', 'red');
+                                openAppointmentDialog(resourceObj.title, date.format(), date.format(), resourceObj);
                             },
                             selectable: true,
-                            select: function (startDate, endDate,jsEvent, view,  resource ) {
-                                $('#calendar').fullCalendar('removeEvents', function () { return true; });
-                                var events =  data.newevents();
-                                events.push
-                                 ({ id: events.length + 1, resourceId: resource.id, start: startDate.format(), end: endDate.format(), title: 'test', buildingid: resource.buildingid,eventColor: 'red'  });
-
-                                // ({ id: '6', resourceId: 'f', start: '2018-04-07T10:30:00', end: '2018-04-07T02:30:00', title: 'testing 6', buildingid: 'B3'});
-                                 data.newevents(events);
-
-                                 $('#calendar').fullCalendar('addEventSource', data.newevents(), true);
-                           
-                                //alert('selected ' + startDate.format() + ' to ' + endDate.format() + ' on '+ resource.title);
+                            select: function (startDate, endDate, jsEvent, view, resource) {
+                                openAppointmentDialog(resource.title, startDate.format(), endDate.format(), resource);
                             },
                             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source'
                         });
                     },
+
                 };
-                ko.applyBindings(viewModel);
+                ko.applyBindings(viewModel, document.getElementById('demoCalendar'));
+
+                saveAppointments = function (stitle, sDate, eDate, sbuildingId, sresourceId) {
+                    $('#calendar').fullCalendar('removeEvents', function () { return true; });
+                    data.newevents.push
+                        ({ id: data.newevents.length + 1, resourceId: sresourceId, start: sDate, end: eDate, title: stitle, buildingid: sbuildingId, eventColor: 'red' });
+
+                    $('#calendar').fullCalendar('addEventSource', data.newevents, true);
+                };
+
+                saveRecurringAppointments = function (aptObj, resObj) {
+                    $('#calendar').fullCalendar('removeEvents', function () { return true; });
+                    if(aptObj.repeat() == true && aptObj.occurences()>1){
+                          for (let index = 0; index < aptObj.occurences(); index++) {
+                              const element = array[index];                              
+                          }  
+                    }
+                    data.newevents.push
+                        ({ id: data.newevents.length + 1, resourceId: sresourceId, start: sDate, end: eDate, title: stitle, buildingid: sbuildingId, eventColor: 'red' });
+
+                    $('#calendar').fullCalendar('addEventSource', data.newevents, true);
+                };
+
+                openAppointmentDialog = function (title, sDate, eDate, resource) {
+
+                    $("#dialog")
+                        .dialog({
+                            resizable: false,
+                            height: "auto",
+                            width: 400,
+                            modal: true,
+                            buttons: [
+                                {
+                                    text: 'Save Changes',
+                                    click: function () {
+                                        //var personname = $("#personName").val();
+                                        var apptObj = appointmentViewModel.appointmentData;
+                                        saveAppointments(apptObj.pName(), apptObj.startDate(), apptObj.endDate(), resource.buildingid, resource.id)
+                                        $(this).dialog('close')
+                                    },
+                                    class: 'btn btn-primary'
+                                },
+                                {
+                                    text: 'Cancel',
+                                    click: function () {
+                                        $(this).dialog('close')
+                                    },
+                                    class: 'btn btn-secondary'
+                                }],
+                            create: function () {
+                                ko.applyBindings(appointmentViewModel, $("#dialog")[0]);
+                            },
+                            open: function () {
+                                appointmentViewModel.appointmentData.pName("");
+                                appointmentViewModel.appointmentData.apartmentName("You selected :" + title);
+                                appointmentViewModel.appointmentData.startDate(sDate);
+                                appointmentViewModel.appointmentData.endDate(eDate);
+                            }
+                        });
+                };
 
                 $(document).ready(function () {
                     viewModel.loadCalendar();
+
+                    $("#create-appointment").button().on("click", function () {
+                        //  $('#dialog').dialog();
+                        openAppointmentDialog();
+                    });
                 });
             });
 
 
     </script>
 
-    <div>
+    <div id="demoCalendar">
+        <p>
+            <button id="create-appointment" class="btn btn-info btn-lg">Create new appointment</button>
+        </p>
+
         <p>
             Building List:
             <select data-bind="options: buildings, optionsText: 'name',optionsCaption: 'Choose...'"></select>
         </p>
+
+        <div id="calendar"></div>
     </div>
 
-    <div id="calendar"></div>
+    <div id="sampleDiv">Some Text :
+        <div data-bind="text:title"></div>
+    </div>
 
-    <!-- <script>
-        $(document).ready(function () {
+    <div id="dialog" title="Book">
+        <fieldset>
+            <div class="modal-body" data-bind="with: appointmentData">
+                <div class="form-group">
+                    <label data-bind="text: apartmentName" id="infoApartment" class="col-form-label"></label>
+                </div>
 
-            $('#building_selector').on('change', function (selBuilding) {
-                $('#calendar').fullCalendar('rerenderEvents');
-            });
+                <div class="form-group">
+                    <label for="personName" class="col-form-label">Person Name:</label>
+                    <input data-bind="value:pName" type="text" class="form-control" id="personName">
+                </div>
 
-            var dialog, form,
+                <div class="form-group">
+                    <label for="startDate" class="col-form-label">Start Date:</label>
+                    <input type="date" data-bind="value: startDate" class="form-control" id="startDate">
+                </div>
 
-                // From http://www.whatwg.org/specs/web-apps/current-work/multipage/states-of-the-type-attribute.html#e-mail-state-%28type=email%29
-                name = $("#name"),
-                email = $("#email"),
-                password = $("#password"),
+                <div class="form-group">
+                    <label class="col-form-label">End Date:</label>
+                    <input type="date" data-bind="value: endDate" class="form-control">
+                </div>
 
-                dialog = $('#dialog').dialog({
-                    autoOpen: false,
-                    height: 400,
-                    width: 350,
-                    modal: true,
-                    buttons: {
-                        "Create an account": addUser,
-                        Cancel: function () {
-                            dialog.dialog("close");
-                        }
-                    },
-                    close: function () {
-                        form[0].reset();
-                    }
+                <div class="form-group">
+                    <label for="repeatcheckbox" class="col-form-label">Repeat:</label>
+                    <input type="checkbox" data-bind="checked: repeat" id="repeatcheckbox">
+                </div>
 
+                <div class="form-group" data-bind="visible: repeat">
+                    <label class="col-form-label">Occurences:</label>
+                    <input type="number" data-bind="value: occurences">
+                </div>
 
-                });
+            </div>
+        </fieldset>
+    </div>
 
-            form = dialog.find("form").on("submit", function (event) {
-                event.preventDefault();
-                addUser();
-            });
-
-            function addUser() {
-                var valid = true;
-
-
-                if (valid) {
-                    $("#users tbody").append("<tr>" +
-                        "<td>" + name.val() + "</td>" +
-                        "<td>" + email.val() + "</td>" +
-                        "<td>" + password.val() + "</td>" +
-                        "</tr>");
-                    dialog.dialog("close");
-                }
-                return valid;
-            }
-
-            var buildings = [{ id: 'a', building: '460 Bryant', title: 'Apartment A' },
-            { id: 'b', building: '460 Bryant', title: 'Apartment B', eventColor: 'green' },
-            { id: 'c', building: '460 Bryant', title: 'Apartment C', eventColor: 'orange' },
-            {
-                id: 'd', building: '460 Bryant', title: 'Apartment D', children: [
-                    { id: 'd1', title: 'Bed D1' },
-                    { id: 'd2', title: 'Bed D2' }
-                ]
-            },
-            { id: 'e', building: '564 Pacific', title: 'Apartment E' },
-            { id: 'f', building: '564 Pacific', title: 'Apartment F', eventColor: 'red' }];
-            var selectedbuildings = buildings;
-
-            //Check this link - column scale duration
-            //https://fullcalendar.io/releases/fullcalendar-scheduler/1.9.4/demos/scale.html
-            $('#calendar').fullCalendar({
-                now: '2018-04-07',
-                editable: true,
-                //eventLimit: true, // allow "more" link when too many events
-                aspectRatio: 1.8,
-                scrollTime: '00:00',
-                weekNumbers: true,
-                header: {
-                    left: 'today prev,next',
-                    center: 'title',
-                    right: 'timelineMonth'
-                },
-
-                eventMouseover: function (data, event, view) {
-
-                    tooltip = '<div class="tooltiptopicevent" style="width:auto;height:auto;background:#ccc;position:absolute;z-index:10001;padding:10px 10px 10px 10px ;  line-height: 200%;">' + 'title: ' + ': ' + data.title + '</br>' + 'start: ' + ': ' + data.start + '</div>';
-
-
-                    $("body").append(tooltip);
-                    $(this).mouseover(function (e) {
-                        $(this).css('z-index', 10000);
-                        $('.tooltiptopicevent').fadeIn('500');
-                        $('.tooltiptopicevent').fadeTo('10', 1.9);
-                    }).mousemove(function (e) {
-                        $('.tooltiptopicevent').css('top', e.pageY + 10);
-                        $('.tooltiptopicevent').css('left', e.pageX + 20);
-                    });
-
-
-                },
-                eventMouseout: function (data, event, view) {
-                    $(this).css('z-index', 8);
-
-                    $('.tooltiptopicevent').remove();
-
-                },
-
-                eventRender: function eventRender(event, element, view) {
-                    if (event.building) {
-                        selectedbuildings = [];
-                    }
-                    var d = buildings.filter(function (item) { return item.building == event.building })
-                    for (let index = 0; index < d.length; index++) {
-                        selectedbuildings.push(d[index]);
-
-                    }
-                    //selectedbuildings.push(d);
-                    return ['all', event.building].indexOf($('#building_selector').val()) >= 0
-                },
-                defaultView: 'timelineMonth',
-                navLinks: false,
-                resourceAreaWidth: '25%',
-                resourceLabelText: '',
-                resourceColumns: [
-                    {
-                        group: true,
-                        labelText: 'Building',
-                        field: 'building'
-                    },
-                    {
-                        labelText: 'Apartment',
-                        field: 'title'
-                    }
-                ],
-                resources: selectedbuildings,
-                events: [
-                    { id: '1', resourceId: 'b', start: '2018-04-07T02:00:00', end: '2018-04-07T07:00:00', title: 'event 1', building: '460 Bryant' },
-                    { id: '2', resourceId: 'c', start: '2018-04-07T05:00:00', end: '2018-04-07T22:00:00', title: 'event 2', building: '460 Bryant' },
-                    { id: '3', resourceId: 'd1', start: '2018-04-06', end: '2018-04-08', title: 'event 3', building: '564 Pacific' },
-                    { id: '4', resourceId: 'e', start: '2018-04-07T03:00:00', end: '2018-04-07T08:00:00', title: 'event 4', building: '564 Pacific' },
-                    { id: '5', resourceId: 'f', start: '2018-04-07T00:30:00', end: '2018-04-07T02:30:00', title: 'event 5', building: '564 Pacific' }
-                ],
-                eventClick: function (eventObj) {
-                    dialog.dialog("open");
-                }
-            });
-
-            $("#create-appointment").button().on("click", function () {
-                dialog.dialog("open");
-            });
-        });
-    </script> -->
 </body>
 
 </html>
