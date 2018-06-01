@@ -80,6 +80,7 @@
                             defaultView: 'timelineMonth',
                             resourceAreaWidth: '25%',
                             resourceLabelText: 'Rooms',
+                            
                             resourceColumns: [
                                 {
                                     group: true,
@@ -92,6 +93,14 @@
                                 }
                             ],
                             resources: data.buildingResource(),
+                            // eventRender: function (resource, cellEls) {
+                            //     cellEls.on('click', function () {
+                            //         if (confirm('Are you sure you want to delete ' + resource.title + '?')) {
+
+                            //         }
+                            //     });
+                            // },
+
                             events: data.newevents,
                             eventMouseover: function (data, event, view) {
 
@@ -114,15 +123,18 @@
                                 $('.tooltiptopicevent').remove();
 
                             },
-                            eventClick: function (eventObj) {
-                                openAppointmentDialog(eventObj.title, eventObj.start.format(), eventObj.end.format(), eventObj);
+                            eventClick: function (eventObj, isCreate) {
+                                openAppointmentDialog(eventObj.title, eventObj.start, eventObj.end, eventObj, false);
+                                $('.ui-dialog-buttonpane button:contains("Delete Appoinment")').button().show();
                             },
-                            dayClick: function (date, jsEvent, view, resourceObj) {
-                                openAppointmentDialog(resourceObj.title, date.format(), date.format(), resourceObj);
+                            dayClick: function (date, jsEvent, view, resourceObj, isCreate, cellEls) {
+                                openAppointmentDialog(resourceObj.title, date, date, resourceObj, true);
+                                $('.ui-dialog-buttonpane button:contains("Delete Appoinment")').button().hide();
                             },
                             selectable: true,
-                            select: function (startDate, endDate, jsEvent, view, resource) {
-                                openAppointmentDialog(resource.title, startDate.format(), endDate.format(), resource);
+                            select: function (startDate, endDate, jsEvent, view, resource, isCreate, cellEls) {
+                                openAppointmentDialog(resource.title, startDate, endDate, resource, true);
+                                $('.ui-dialog-buttonpane button:contains("Delete Appoinment")').button().hide();
                             },
                             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source'
                         });
@@ -130,6 +142,14 @@
 
                 };
                 ko.applyBindings(viewModel, document.getElementById('demoCalendar'));
+
+
+                removeAppointment = function (id) {
+                    $('#calendar').fullCalendar('removeEvents', function () { return true; });
+                   var index = data.newevents.findIndex(function(item){return item.id == id;});
+                    data.newevents.splice(index,1);
+                    $('#calendar').fullCalendar('addEventSource', data.newevents, true);
+                };
 
                 saveAppointments = function (stitle, sDate, eDate, sbuildingId, sresourceId) {
                     $('#calendar').fullCalendar('removeEvents', function () { return true; });
@@ -141,10 +161,10 @@
 
                 saveRecurringAppointments = function (aptObj, resObj) {
                     $('#calendar').fullCalendar('removeEvents', function () { return true; });
-                    if(aptObj.repeat() == true && aptObj.occurences()>1){
-                          for (let index = 0; index < aptObj.occurences(); index++) {
-                              const element = array[index];                              
-                          }  
+                    if (aptObj.repeat() == true && aptObj.occurences() > 1) {
+                        for (let index = 0; index < aptObj.occurences(); index++) {
+                            const element = array[index];
+                        }
                     }
                     data.newevents.push
                         ({ id: data.newevents.length + 1, resourceId: sresourceId, start: sDate, end: eDate, title: stitle, buildingid: sbuildingId, eventColor: 'red' });
@@ -152,24 +172,56 @@
                     $('#calendar').fullCalendar('addEventSource', data.newevents, true);
                 };
 
-                openAppointmentDialog = function (title, sDate, eDate, resource) {
+                openDeleteAppointmentDialog = function (resource, cellEls) {
+                    $("#deleteDialog").dialog({
+                        resizable: false,
+                        height: "auto",
+                        width: 400,
+                        modal: true,
+                        buttons: [
+                            {
+                                text: 'Delete Appoinment',
+                                click: function () {
 
+                                    // var apptObj = appointmentViewModel.appointmentData;
+                                    // saveAppointments(apptObj.pName(), apptObj.startDate().format(), apptObj.endDate().format(), resource.buildingid, resource.id)
+
+                                    $(this).dialog('close')
+                                },
+                                class: 'btn btn-secondary'
+                            },
+                            {
+                                text: 'Cancel',
+                                click: function () {
+                                    $(this).dialog('close')
+                                },
+                                class: 'btn btn-secondary'
+                            }],
+
+                    });
+                }
+
+                openAppointmentDialog = function (title, sDate, eDate, resource, isCreate) {
+                    $("#dialog").css("display","inline");
                     $("#dialog")
                         .dialog({
                             resizable: false,
                             height: "auto",
                             width: 400,
                             modal: true,
+                          
                             buttons: [
                                 {
                                     text: 'Save Changes',
                                     click: function () {
-                                        //var personname = $("#personName").val();
+
                                         var apptObj = appointmentViewModel.appointmentData;
                                         saveAppointments(apptObj.pName(), apptObj.startDate(), apptObj.endDate(), resource.buildingid, resource.id)
+
                                         $(this).dialog('close')
                                     },
-                                    class: 'btn btn-primary'
+                                    // class: 'btn btn-primary'
+                                    class: 'btn btn-secondary'
                                 },
                                 {
                                     text: 'Cancel',
@@ -177,15 +229,37 @@
                                         $(this).dialog('close')
                                     },
                                     class: 'btn btn-secondary'
-                                }],
+                                }, {
+                                    text: 'Delete Appoinment',
+                                    click: function () {
+
+                                        if (confirm('Are you sure you want to delete ' + resource.title + '?')) {
+                                            removeAppointment(resource.id);
+                                        }
+                                        $(this).dialog('close')
+                                    },
+                                    class: 'btn btn-secondary'
+                                }
+                            ],
+
                             create: function () {
                                 ko.applyBindings(appointmentViewModel, $("#dialog")[0]);
                             },
                             open: function () {
-                                appointmentViewModel.appointmentData.pName("");
-                                appointmentViewModel.appointmentData.apartmentName("You selected :" + title);
-                                appointmentViewModel.appointmentData.startDate(sDate);
-                                appointmentViewModel.appointmentData.endDate(eDate);
+                                if (isCreate) {
+                                    appointmentViewModel.appointmentData.pName("");
+                                    
+                                } else {
+                                    appointmentViewModel.appointmentData.pName(title);
+                                }
+                                appointmentViewModel.appointmentData.apartmentName("");
+                                var startDate = new Date(sDate);
+                                var startDatestring = startDate.getFullYear() + "-" + ("0" + (startDate.getMonth() + 1)).slice(-2) + "-" + ("0" + startDate.getDate()).slice(-2);
+                                appointmentViewModel.appointmentData.startDate(startDatestring);
+                                var endDate = new Date(eDate);
+                                var endDatestring = endDate.getFullYear() + "-" + ("0" + (endDate.getMonth() + 1)).slice(-2) + "-" + ("0" + endDate.getDate()).slice(-2);
+                                appointmentViewModel.appointmentData.endDate(endDatestring);
+
                             }
                         });
                 };
@@ -197,30 +271,23 @@
                         //  $('#dialog').dialog();
                         openAppointmentDialog();
                     });
+                   $("#dialog").css("display","none");
                 });
             });
 
 
     </script>
 
-    <div id="demoCalendar">
-        <p>
-            <button id="create-appointment" class="btn btn-info btn-lg">Create new appointment</button>
-        </p>
-
-        <p>
+    <div id="demoCalendar">        
+        <!-- <p>
             Building List:
-            <select data-bind="options: buildings, optionsText: 'name',optionsCaption: 'Choose...'"></select>
-        </p>
-
+            <select data-bind="options: buildings, optionsText: 'name',optionsCaption: 'Choose...'"></select> 
+            <button id="create-appointment" class="btn btn-secondary">Create new appointment</button>
+        </p> -->
         <div id="calendar"></div>
     </div>
 
-    <div id="sampleDiv">Some Text :
-        <div data-bind="text:title"></div>
-    </div>
-
-    <div id="dialog" title="Book">
+    <div id="dialog" title="Book An Appointment">
         <fieldset>
             <div class="modal-body" data-bind="with: appointmentData">
                 <div class="form-group">
@@ -242,18 +309,19 @@
                     <input type="date" data-bind="value: endDate" class="form-control">
                 </div>
 
-                <div class="form-group">
-                    <label for="repeatcheckbox" class="col-form-label">Repeat:</label>
-                    <input type="checkbox" data-bind="checked: repeat" id="repeatcheckbox">
-                </div>
-
-                <div class="form-group" data-bind="visible: repeat">
-                    <label class="col-form-label">Occurences:</label>
-                    <input type="number" data-bind="value: occurences">
-                </div>
 
             </div>
         </fieldset>
+    </div>
+
+    <div id="deleteDialog" class="modal hide fade">
+        <div class="modal-body">
+            Are you sure?
+        </div>
+        <!-- <div class="modal-footer">
+            <button type="button" data-dismiss="modal" class="btn btn-primary" id="delete">Delete</button>
+            <button type="button" data-dismiss="modal" class="btn">Cancel</button>
+        </div> -->
     </div>
 
 </body>

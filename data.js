@@ -15,11 +15,11 @@ define(['knockout'], function (ko) {
    
 
     var newevents = [
-        { id: 1, resourceId: 'b', start: '2018-04-07T02:00:00', end: '2018-04-07T07:00:00', title: 'event 1', buildingid: 'B1' },
-        { id: 2, resourceId: 'c', start: '2018-04-07T05:00:00', end: '2018-04-07T22:00:00', title: 'event 2', buildingid: 'B1' },
-        { id: 3, resourceId: 'd1', start: '2018-04-06', end: '2018-04-08', title: 'event 3', buildingid: 'B2' },
-        { id: 4, resourceId: 'e', start: '2018-04-07T03:00:00', end: '2018-04-07T08:00:00', title: 'event 4', buildingid: 'B3' },
-        { id: 5, resourceId: 'f', start: '2018-04-07T00:30:00', end: '2018-04-07T02:30:00', title: 'event 5', buildingid: 'B3' }
+        { id: 1, resourceId: 'b', start: '2018-04-07T02:00:00', end: '2018-04-07T07:00:00', title: 'John 1', buildingid: 'B1' },
+        { id: 2, resourceId: 'c', start: '2018-04-07T05:00:00', end: '2018-04-07T22:00:00', title: 'John 2', buildingid: 'B1' },
+        { id: 3, resourceId: 'd1', start: '2018-04-06', end: '2018-04-08', title: 'John 3', buildingid: 'B2' },
+        { id: 4, resourceId: 'e', start: '2018-04-07T03:00:00', end: '2018-04-07T08:00:00', title: 'John 4', buildingid: 'B3' },
+        { id: 5, resourceId: 'f', start: '2018-04-07T00:30:00', end: '2018-04-07T02:30:00', title: 'John 5', buildingid: 'B3' }
        
     ];
 
